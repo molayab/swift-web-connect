@@ -1,26 +1,22 @@
 import Foundation
 import Combine
 
-@available(macOS 10.15, *)
 public protocol URLSessionProtocol {
     func socketTask(with url: URL) -> URLSessionWebSocketTaskProtocol?
 }
 
-@available(macOS 10.15, *)
 public protocol URLSessionWebSocketTaskProtocol {
     func resume()
     func cancel(with: URLSessionWebSocketTask.CloseCode, reason: Data?)
     func receive(completionHandler: @escaping (Result<URLSessionWebSocketTask.Message, Error>) -> Void)
 }
 
-@available(macOS 10.15, *)
 extension URLSession: URLSessionProtocol {
     public func socketTask(with url: URL) -> URLSessionWebSocketTaskProtocol? {
         return webSocketTask(with: url)
     }
 }
 
-@available(macOS 10.15, *)
 extension URLSessionWebSocketTask: URLSessionWebSocketTaskProtocol { }
 
 public protocol Connectable {
@@ -31,18 +27,15 @@ public protocol Connectable {
     func disconnect()
 }
 
-@available(macOS 10.15, *)
 public protocol Subscribable {
     func subscribe() throws -> PassthroughSubject<Data, Swift.Error>
     func subscribe(onNext: @escaping (Result<Data, Swift.Error>) -> Void) throws
 }
 
-@available(macOS 10.15, *)
 public protocol SwiftWebConnectProtocol: Subscribable & Connectable {
     static var shared: SwiftWebConnect { get }
 }
 
-@available(macOS 10.15, *)
 public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
     public static let shared = SwiftWebConnect()
     
@@ -163,7 +156,6 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
     }
 }
 
-@available(macOS 10.15, *)
 extension SwiftWebConnect: URLSessionWebSocketDelegate {
     public func urlSession(_ session: URLSession,
                            webSocketTask: URLSessionWebSocketTask,
@@ -181,7 +173,6 @@ extension SwiftWebConnect: URLSessionWebSocketDelegate {
     }
 }
 
-@available(macOS 10.15, *)
 extension SwiftWebConnect {
     public typealias Reason = Error
     public enum Error: Swift.Error {
