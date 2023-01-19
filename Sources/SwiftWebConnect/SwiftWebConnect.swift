@@ -45,7 +45,6 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
     private let operationQueue: OperationQueue = .init()
     private var session: URLSessionProtocol!
     private var continuos: Bool = true
-    private let subject = PassthroughSubject<Data, Swift.Error>()
     
     public private(set) var status: Status = .disconnected
 
@@ -95,8 +94,6 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
     }
     
     public func disconnect() {
-        continuos = false
-        
         cancellables.forEach { $0.cancel() }
         cancellables.removeAll()
         webSocket?.cancel(with: .goingAway, reason: nil)
@@ -109,12 +106,11 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
             throw Error.notConnected
         }
         
-        defer {
-            Task {
-                readAndPublish()
-            }
+        let subject = PassthroughSubject<Data, Swift.Error>()
+        Task(priority: .low) {
+            try await Task.sleep(for: .milliseconds(5))
+            readAndPublish(subject)
         }
-        
         return subject
     }
     
@@ -157,10 +153,8 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
         }
     }
     
-    private func readAndPublish() {
+    private func readAndPublish(_ subject: PassthroughSubject<Data, Swift.Error>) {
         let continuos = self.continuos
-        let subject = self.subject
-        
         webSocket?.receive { [weak self] result in
             switch result {
             case .success(let message):
@@ -179,7 +173,7 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
                 }
                 
                 if continuos {
-                    self?.readAndPublish()
+                    self?.readAndPublish(subject)
                 } else {
                     subject.send(completion: .finished)
                 }

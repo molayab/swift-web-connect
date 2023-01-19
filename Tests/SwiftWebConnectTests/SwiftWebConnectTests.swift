@@ -11,6 +11,11 @@ struct URLSessionMock: URLSessionProtocol {
 }
 
 struct URLSessionWebSocketTaskMock: URLSessionWebSocketTaskProtocol {
+    func send(_ message: URLSessionWebSocketTask.Message,
+              completionHandler: @escaping (Error?) -> Void) {
+        
+    }
+    
     var onResume: () -> Void
     var onCancel: (URLSessionWebSocketTask.CloseCode, Data?) -> Void
     var onReceiveSend: Result<URLSessionWebSocketTask.Message, Error>
@@ -31,9 +36,14 @@ struct URLSessionWebSocketTaskMock: URLSessionWebSocketTaskProtocol {
 final class SwiftWebConnectTests: XCTestCase {
     var cancellables: [AnyCancellable] = []
     
+    override func tearDown() async throws {
+        cancellables.forEach { $0.cancel() }
+    }
+    
     func testSuccessConnection() throws {
-        // GIVEN
         let sut = SwiftWebConnect()
+        
+        // GIVEN
         var wasCalledOnResume = false
         let mock = URLSessionWebSocketTaskMock(
             onResume: { wasCalledOnResume.toggle() },
@@ -51,8 +61,9 @@ final class SwiftWebConnectTests: XCTestCase {
     }
     
     func testFailureConnection() throws {
-        // GIVEN
         let sut = SwiftWebConnect()
+        
+        // GIVEN
         let mock2 = URLSessionMock(onSocketTask: nil)
         sut.configure(session: mock2, continuos: false)
         
@@ -68,8 +79,9 @@ final class SwiftWebConnectTests: XCTestCase {
     }
     
     func testInvalidUrlConnection() throws {
-        // GIVEN
         let sut = SwiftWebConnect()
+        
+        // GIVEN
         let mock2 = URLSessionMock(onSocketTask: nil)
         sut.configure(session: mock2, continuos: false)
         
@@ -83,8 +95,9 @@ final class SwiftWebConnectTests: XCTestCase {
     }
     
     func testSuccessSubscriptionClosure() throws {
-        // GIVEN
         let sut = SwiftWebConnect()
+        
+        // GIVEN
         var receivedData: Result<Data, Error>?
         var calledOnResume: Bool = false
         
@@ -117,8 +130,9 @@ final class SwiftWebConnectTests: XCTestCase {
     }
     
     func testSuccessSubscription() throws {
-        // GIVEN
         let sut = SwiftWebConnect()
+        
+        // GIVEN
         var receivedData: Data?
         var calledOnResume: Bool = false
         

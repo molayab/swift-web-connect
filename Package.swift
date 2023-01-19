@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "SwiftWebConnect",
     platforms: [
-        .macOS(.v10_15), .iOS(.v16), .tvOS(.v16)
+        .macOS(.v13), .iOS(.v16), .tvOS(.v16)
     ],
     products: [
         .library(
