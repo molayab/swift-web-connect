@@ -44,10 +44,11 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
     private let operationQueue: OperationQueue = .init()
     private var session: URLSessionProtocol!
     private var continuos: Bool = true
+    private let subject = PassthroughSubject<Data, Swift.Error>()
     
     public private(set) var status: Status = .disconnected
 
-    private override init() {
+    override init() {
         super.init()
         operationQueue.maxConcurrentOperationCount = 1
         configure()
@@ -93,11 +94,13 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
     }
     
     public func disconnect() {
+        continuos = false
+        
+        cancellables.forEach { $0.cancel() }
+        cancellables.removeAll()
         webSocket?.cancel(with: .goingAway, reason: nil)
         webSocket = nil
-        cancellables.forEach { $0.cancel() }
         status = .disconnected
-        cancellables = []
     }
     
     public func subscribe() throws -> PassthroughSubject<Data, Swift.Error> {
@@ -105,27 +108,33 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
             throw Error.notConnected
         }
         
-        let subject = PassthroughSubject<Data, Swift.Error>()
-        Task {
-            readAndPublish(using: subject)
+        defer {
+            Task {
+                readAndPublish()
+            }
         }
+        
         return subject
     }
     
     public func subscribe(onNext: @escaping (Result<Data, Swift.Error>) -> Void) throws {
-        try subscribe().sink { completion in
-            switch completion {
-            case .failure(let error):
-                onNext(.failure(error))
-            case .finished: break
+        let a = try subscribe()
+            .sink { completion in
+                switch completion {
+                case .finished:
+                    break
+                case .failure(let error):
+                    onNext(.failure(error))
+                }
+            } receiveValue: { data in
+                onNext(.success(data))
             }
-        } receiveValue: { data in
-            onNext(.success(data))
-        }.store(in: &cancellables)
+        a.store(in: &cancellables)
     }
     
-    private func readAndPublish(using publisher: PassthroughSubject<Data, Swift.Error>) {
+    private func readAndPublish() {
         let continuos = self.continuos
+        let subject = self.subject
         
         webSocket?.receive { [weak self] result in
             switch result {
@@ -133,24 +142,24 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
                 switch message {
                 case .string(let str):
                     if let data = str.data(using: .unicode) {
-                        publisher.send(data)
+                        subject.send(data)
                     } else {
-                        publisher.send(
+                        subject.send(
                             completion: .failure(Error.cannotConvertStringToUnicodeData))
                     }
                 case .data(let data):
-                    publisher.send(data)
+                    subject.send(data)
                 @unknown default:
                     fatalError()
                 }
                 
                 if continuos {
-                    self?.readAndPublish(using: publisher)
+                    self?.readAndPublish()
                 } else {
-                    publisher.send(completion: .finished)
+                    subject.send(completion: .finished)
                 }
             case .failure(let error):
-                publisher.send(completion: .failure(error))
+                subject.send(completion: .failure(error))
             }
         }
     }

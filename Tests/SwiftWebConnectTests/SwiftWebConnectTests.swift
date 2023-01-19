@@ -30,10 +30,10 @@ struct URLSessionWebSocketTaskMock: URLSessionWebSocketTaskProtocol {
 
 final class SwiftWebConnectTests: XCTestCase {
     var cancellables: [AnyCancellable] = []
-    let sut = SwiftWebConnect.shared
     
     func testSuccessConnection() throws {
         // GIVEN
+        let sut = SwiftWebConnect()
         var wasCalledOnResume = false
         let mock = URLSessionWebSocketTaskMock(
             onResume: { wasCalledOnResume.toggle() },
@@ -52,6 +52,7 @@ final class SwiftWebConnectTests: XCTestCase {
     
     func testFailureConnection() throws {
         // GIVEN
+        let sut = SwiftWebConnect()
         let mock2 = URLSessionMock(onSocketTask: nil)
         sut.configure(session: mock2, continuos: false)
         
@@ -68,6 +69,7 @@ final class SwiftWebConnectTests: XCTestCase {
     
     func testInvalidUrlConnection() throws {
         // GIVEN
+        let sut = SwiftWebConnect()
         let mock2 = URLSessionMock(onSocketTask: nil)
         sut.configure(session: mock2, continuos: false)
         
@@ -82,6 +84,7 @@ final class SwiftWebConnectTests: XCTestCase {
     
     func testSuccessSubscriptionClosure() throws {
         // GIVEN
+        let sut = SwiftWebConnect()
         var receivedData: Result<Data, Error>?
         var calledOnResume: Bool = false
         
@@ -115,6 +118,7 @@ final class SwiftWebConnectTests: XCTestCase {
     
     func testSuccessSubscription() throws {
         // GIVEN
+        let sut = SwiftWebConnect()
         var receivedData: Data?
         var calledOnResume: Bool = false
         
