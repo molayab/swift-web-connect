@@ -9,6 +9,7 @@ public protocol URLSessionWebSocketTaskProtocol {
     func resume()
     func cancel(with: URLSessionWebSocketTask.CloseCode, reason: Data?)
     func receive(completionHandler: @escaping (Result<URLSessionWebSocketTask.Message, Error>) -> Void)
+    func send(_ message: URLSessionWebSocketTask.Message, completionHandler: @escaping (Error?) -> Void)
 }
 
 extension URLSession: URLSessionProtocol {
@@ -130,6 +131,30 @@ public final class SwiftWebConnect: NSObject, SwiftWebConnectProtocol {
                 onNext(.success(data))
             }
         a.store(in: &cancellables)
+    }
+    
+    public func send(_ data: Data) async -> Result<Void, Swift.Error> {
+        return await withCheckedContinuation { c in
+            webSocket?.send(.data(data)) { error in
+                if let error = error {
+                    c.resume(returning: .failure(error))
+                } else {
+                    c.resume(returning: .success(()))
+                }
+            }
+        }
+    }
+    
+    public func send(string: String) async -> Result<Void, Swift.Error> {
+        return await withCheckedContinuation { c in
+            webSocket?.send(.string(string)) { error in
+                if let error = error {
+                    c.resume(returning: .failure(error))
+                } else {
+                    c.resume(returning: .success(()))
+                }
+            }
+        }
     }
     
     private func readAndPublish() {
